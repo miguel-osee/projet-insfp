@@ -14,17 +14,24 @@ use App\Http\Controllers\Admin\SalleController;
 use App\Http\Controllers\Admin\GalerieController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ThemeController; 
 
 /*
 |--------------------------------------------------------------------------
-| 🔓 ROUTES PUBLIQUES (Accessibles sans connexion)
+| 🔓 ROUTES PUBLIQUES (Accessibles sans connexion pour le Site Vitrine)
 |--------------------------------------------------------------------------
 */
 Route::post('/login', [AuthController::class, 'login']);
 
-// Contenus publics pour le site vitrine
-Route::get('/formations', [FormationController::class, 'index']);
-Route::get('/actualites', [ActualiteController::class, 'index']);
+// --- Formations ---
+Route::get('/formations', [FormationController::class, 'index']); // Liste toutes les formations
+Route::get('/formations/{id}', [FormationController::class, 'show']); // 🚀 NOUVEAU : Affiche les détails d'une formation
+
+// --- Actualités ---
+Route::get('/actualites', [ActualiteController::class, 'index']); // Liste toutes les actualités
+Route::get('/actualites/{id}', [ActualiteController::class, 'show']); // 🚀 NOUVEAU : Affiche les détails d'une actualité
+
+// --- Galerie ---
 Route::get('/galerie', [GalerieController::class, 'index']);
 
 
@@ -42,16 +49,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/emploi-du-temps', [EmploiDuTempsController::class, 'index']);
         Route::get('/moyennes', [MoyenneController::class, 'getStagiaireMoyennes']);
         Route::get('/documents', [DocumentController::class, 'getStagiaireDocuments']);
+        Route::get('/themes', [ThemeController::class, 'index']);
     });
 
     /* 🛠️ Espace Administrateur (Middleware 'admin' requis) */
     Route::prefix('admin')->middleware('admin')->group(function () {
         
         // Statistiques du Dashboard
-        // L'URL finale sera : /api/admin/stats
         Route::get('/stats', [DashboardController::class, 'getStats']);
 
-        // Gestion des ressources (CRUD)
+        // Gestion des ressources (CRUD complet généré par apiResource)
         Route::apiResource('formations', FormationController::class);
         Route::apiResource('semestres', SemestreController::class);
         Route::apiResource('stagiaires', StagiaireController::class);
@@ -61,13 +68,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('salles', SalleController::class);
         Route::apiResource('galerie', GalerieController::class);
         Route::apiResource('documents', DocumentController::class);
+        Route::apiResource('themes', ThemeController::class);
         
-        // ========================================================
-        // 🚀 NOUVELLE ROUTE : Mise à jour du niveau du stagiaire
-        // ========================================================
+        // Mise à jour spécifique du niveau du stagiaire
         Route::patch('/stagiaires/{id}/niveau', [StagiaireController::class, 'updateNiveau']);
 
-        // Routes spécifiques
+        // Récupérer les semestres spécifiques à une formation
         Route::get('/formations/{id}/semestres', function ($id) {
             return \App\Models\Semestre::where('formation_id', $id)->get();
         });
