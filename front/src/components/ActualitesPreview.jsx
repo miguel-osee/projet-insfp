@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import ActualiteCard from "./ActualitesCard";
-import FormationBg from "../assets/images/galerie-4.jpg";
 
 export default function ActualitesPreview() {
 
@@ -21,7 +20,7 @@ export default function ActualitesPreview() {
     fetchActualites();
   }, []);
 
-  // 🚀 NOUVEAU : Fonction pour nettoyer les balises HTML de Quill
+  //  NOUVEAU : Fonction pour nettoyer les balises HTML de Quill
   const stripHtml = (html) => {
     if (!html) return "";
     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -54,7 +53,7 @@ export default function ActualitesPreview() {
                 ? new Date(actu.date_publication).toLocaleDateString()
                 : ""
             }
-            // 🚀 CORRECTION : On nettoie le HTML avant de couper à 80 caractères
+            //  CORRECTION : On nettoie le HTML avant de couper à 80 caractères
             sousTitre={stripHtml(actu.contenu).substring(0, 80) + "..."}
             image={
               actu.image
@@ -67,7 +66,7 @@ export default function ActualitesPreview() {
 </div>
        <div className="flex justify-center mt-8">
   <Link
-    to="/formations"
+    to="/Actualites"
     className="inline-flex items-center gap-2 font-semibold transition-colors text-primary hover:text-primary/80 group"
   >
     En savoir plus 

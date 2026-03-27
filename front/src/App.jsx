@@ -27,7 +27,7 @@ import Semestres from "./pages/Stagiaire/SuiviSemestre";
 import Documents from "./pages/Stagiaire/Documents";
 import EmploiDuTemps from "./pages/Stagiaire/Emploi";
 import Profil from "./pages/Stagiaire/Profil";
-// 🚀 Ajout : Import de la page Bibliothèque pour le stagiaire (Vérifie bien le chemin)
+//  Ajout : Import de la page Bibliothèque pour le stagiaire (Vérifie bien le chemin)
 import StagiaireBibliotheque from "./pages/Stagiaire/BibliothequeStagiaire"; 
 
 // Dashboard admin
@@ -39,14 +39,14 @@ import AdminArticles from "./pages/Admin/Articles";
 import AdminGalerie from "./pages/Admin/Galerie";
 import AdminDocuments from "./pages/Admin/Document"; 
 import AdminDashboard from "./pages/Admin/Dashboard"; 
-// 🚀 Ajout : Import de la page Bibliothèque pour l'admin (Vérifie bien le chemin)
+//  Ajout : Import de la page Bibliothèque pour l'admin (Vérifie bien le chemin)
 import AdminBibliotheque from "./pages/Admin/BibliothequeAdmin"; 
 
 export default function App() {
   return (
     <Routes>
 
-      {/* 🌍 Site public */}
+      {/*  Site public */}
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/contact" element={<Contact />} />
@@ -58,11 +58,11 @@ export default function App() {
         <Route path="/actualites/:id" element={<ActualitesDetails />} />
       </Route>
 
-      {/* 🔐 Auth */}
+      {/* Auth */}
       <Route path="/login-stagiaire" element={<LoginStagiaire />} />
       <Route path="/login-admin" element={<LoginAdmin />} />
 
-      {/* 🎓 Dashboard STAGIAIRE */}
+      {/*  Dashboard STAGIAIRE */}
       <Route
         path="/DashStagiaire"
         element={
@@ -76,11 +76,11 @@ export default function App() {
         <Route path="Documents" element={<Documents />} /> 
         <Route path="EmploiDuTemps" element={<EmploiDuTemps />} />
         <Route path="Profil" element={<Profil />} />
-        {/* 🚀 Ajout de la route Bibliothèque Stagiaire */}
+        {/*  Ajout de la route Bibliothèque Stagiaire */}
         <Route path="Bibliotheque" element={<StagiaireBibliotheque />} />
       </Route>
 
-      {/* 🛠️ Dashboard ADMIN */}
+      {/*  Dashboard ADMIN */}
       <Route
         path="/DashAdmin"
         element={

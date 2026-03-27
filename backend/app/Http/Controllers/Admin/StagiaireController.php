@@ -10,15 +10,21 @@ use Illuminate\Support\Facades\Hash;
 
 class StagiaireController extends Controller
 {
+    /**
+     * Liste tous les stagiaires avec leurs relations
+     */
     public function index()
     {
         return response()->json(
-            Stagiaire::with(['user','formation','semestre'])
+            Stagiaire::with(['user', 'formation', 'semestre'])
                 ->latest()
                 ->get()
         );
     }
 
+    /**
+     * Création d'un nouveau stagiaire et de son compte utilisateur
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -30,7 +36,8 @@ class StagiaireController extends Controller
             'semestre_id' => 'required|exists:semestres,id',
         ]);
 
-        $generatedPassword = 'INSFP' . rand(1000,9999);
+        // Format de mot de passe à l'inscription
+        $generatedPassword = 'INSFP' . rand(1000, 9999);
 
         $user = User::create([
             'nom' => $request->nom,
@@ -48,11 +55,14 @@ class StagiaireController extends Controller
         ]);
 
         return response()->json([
-            'stagiaire' => $stagiaire->load(['user','formation','semestre']),
+            'stagiaire' => $stagiaire->load(['user', 'formation', 'semestre']),
             'generated_password' => $generatedPassword
         ], 201);
     }
 
+    /**
+     * Mise à jour des informations du stagiaire
+     */
     public function update(Request $request, $id)
     {
         $stagiaire = Stagiaire::with('user')->findOrFail($id);
@@ -79,26 +89,59 @@ class StagiaireController extends Controller
         ]);
 
         return response()->json(
-            $stagiaire->load(['user','formation','semestre'])
+            $stagiaire->load(['user', 'formation', 'semestre'])
         );
     }
 
+    /**
+     * Suppression du stagiaire et de son compte
+     */
     public function destroy($id)
     {
         $stagiaire = Stagiaire::with('user')->findOrFail($id);
 
-        $stagiaire->user->delete();
+        if ($stagiaire->user) {
+            $stagiaire->user->delete();
+        }
+        
         $stagiaire->delete();
 
         return response()->json([
-            'message' => 'Stagiaire supprimé'
+            'message' => 'Stagiaire supprimé avec succès'
         ]);
     }
 
-    // =========================================================================
-    // 🚀 NOUVELLE FONCTION : Permet de changer uniquement le niveau (Semestre)
-    // Utilisée par la page AdminNotes pour promouvoir un étudiant
-    // =========================================================================
+    /**
+     * 🔐 RÉINITIALISATION DU MOT DE PASSE (Format INSFP0000)
+     */
+    public function resetPassword($id)
+    {
+        // On récupère le stagiaire et son utilisateur
+        $stagiaire = Stagiaire::with('user')->findOrFail($id);
+        $user = $stagiaire->user;
+
+        if (!$user) {
+            return response()->json(['message' => 'Compte utilisateur introuvable'], 404);
+        }
+
+        // Génération du nouveau mot de passe (Format demandé)
+        $newPassword = 'INSFP' . rand(1000, 9999);
+
+        // Mise à jour hachée en base de données
+        $user->update([
+            'password' => Hash::make($newPassword)
+        ]);
+
+        // Retour du mot de passe en clair pour l'alerte React
+        return response()->json([
+            'message' => 'Mot de passe réinitialisé',
+            'new_password' => $newPassword
+        ], 200);
+    }
+
+    /**
+     * Mise à jour du niveau (Semestre) uniquement
+     */
     public function updateNiveau(Request $request, $id)
     {
         $request->validate([
@@ -107,7 +150,6 @@ class StagiaireController extends Controller
 
         $stagiaire = Stagiaire::findOrFail($id);
         
-        // On met à jour uniquement le semestre_id
         $stagiaire->update([
             'semestre_id' => $request->semestre_id
         ]);

@@ -32,7 +32,10 @@ export default function AdminNotes() {
     setLoading(true);
     try {
       const res = await api.get("/admin/moyennes", {
-        params: { formation_id: selectedFormation, semestre_numero: selectedSemestreNum }
+        params: { 
+            formation_id: selectedFormation, 
+            semestre_numero: selectedSemestreNum === "all" ? null : selectedSemestreNum 
+        }
       });
       
       setSemestreId(res.data.semestre_id);
@@ -124,7 +127,7 @@ export default function AdminNotes() {
   const resetSemesterNotes = async () => {
     const avecNotes = originalStagiaires.filter(s => s.moyenne_id);
     if (avecNotes.length === 0) return alert("Aucune note à supprimer.");
-    if (!window.confirm(`Supprimer TOUTES les notes du S${selectedSemestreNum} pour cette formation ?`)) return;
+    if (!window.confirm(`Supprimer TOUTES les notes pour cette sélection ?`)) return;
 
     setIsSavingGlobal(true);
     try {
@@ -151,102 +154,144 @@ export default function AdminNotes() {
   return (
     <div className="container mx-auto flex flex-col gap-4 p-3 md:p-5 md:gap-6 h-[calc(100dvh-70px)] md:h-[calc(100vh-80px)] overflow-hidden bg-background">
       
-      {/* ===== BANNIÈRE (AVEC BOUTONS D'ACTION) ===== */}
-      <div className="relative w-full h-[130px] md:h-[220px] shrink-0 p-5 md:p-10 overflow-hidden text-white bg-secondary rounded-2xl md:rounded-3xl border border-black/5">
+      {/* ===== BANNIÈRE (HERO) ===== */}
+      <div className="relative w-full min-h-[120px] h-auto md:h-[220px] shrink-0 p-5 md:p-10 overflow-hidden text-white bg-secondary rounded-2xl md:rounded-3xl border border-black/5 flex items-center">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-5">
           <FileSpreadsheet size={250} className="md:w-[350px] md:h-[350px]" />
         </div>
-        <div className="relative z-10 flex flex-col justify-center h-full gap-4 md:flex-row md:items-center md:justify-between">
+        
+        <div className="relative z-10 flex flex-col justify-center w-full h-full gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col justify-center flex-1">
-            <h1 className="text-xl font-bold tracking-tight md:mb-2 md:text-4xl line-clamp-1">Gestion des Notes</h1>
-            <p className="max-w-xl text-xs font-medium md:text-sm text-white/80 line-clamp-2">Saisissez les notes. Le niveau s'ajuste automatiquement.</p>
+            <h1 className="text-xl font-bold tracking-tight md:mb-2 md:text-4xl">
+              Gestion des Notes
+            </h1>
+            <p className="max-w-sm text-xs font-medium leading-relaxed md:text-sm text-white/80 md:max-w-full">
+              Saisissez les notes. Le niveau des stagiaires s'ajuste automatiquement par semestre.
+            </p>
           </div>
           
-          <div className="flex items-center gap-3 shrink-0">
-            {/* BOUTON VIDER */}
+          {/* Actions Desktop */}
+          <div className="items-center hidden gap-3 md:flex shrink-0">
             <button 
               onClick={resetSemesterNotes} 
               disabled={isSavingGlobal || originalStagiaires.filter(s => s.moyenne_id).length === 0} 
-              className="flex items-center gap-2 px-4 py-2.5 md:px-5 md:py-3 text-sm font-bold transition-all bg-white/5 border border-white/10 text-white hover:bg-red-500 hover:border-red-500 rounded-xl md:rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed" 
-              title="Vider l'onglet"
+              className="flex items-center gap-2 px-5 py-3 text-sm font-bold text-white transition-all border bg-white/5 border-white/10 hover:bg-red-500 hover:border-red-500 rounded-2xl disabled:opacity-30"
             >
               <Trash2 size={18}/>
             </button>
             
-            {/* BOUTON PUBLIER */}
             <button 
               onClick={saveAllNotes} 
               disabled={!hasChanges || isSavingGlobal} 
-              className={`flex items-center gap-2 px-5 py-2.5 md:px-6 md:py-3 text-sm font-bold shadow-sm rounded-xl md:rounded-2xl transition-all
-                ${saveSuccess 
-                  ? "bg-white text-secondary" 
-                  : hasChanges 
-                    ? "bg-primary text-white hover:opacity-90 active:scale-95" 
-                    : "bg-white/10 text-white/40 cursor-not-allowed border border-white/5"
-                }
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-bold shadow-sm rounded-2xl transition-all
+                ${saveSuccess ? "bg-white text-secondary" : hasChanges ? "bg-primary text-white hover:opacity-90 active:scale-95" : "bg-white/10 text-white/40 border border-white/5"}
               `}
             >
               {isSavingGlobal ? <Loader2 size={18} className="animate-spin" /> : saveSuccess ? <CheckCircle2 size={18}/> : <Save size={18}/>}
-              <span className="hidden sm:inline">
-                {isSavingGlobal ? "Publication..." : saveSuccess ? "Publié avec succès" : `Publier les notes (${modifiedStagiaires.length})`}
-              </span>
-              <span className="sm:hidden">
-                {isSavingGlobal ? "Envoi..." : saveSuccess ? "OK" : `Publier`}
-              </span>
+              <span>{isSavingGlobal ? "Publication..." : saveSuccess ? "Publié" : `Publier (${modifiedStagiaires.length})`}</span>
             </button>
           </div>
         </div>
       </div>
 
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-white border shadow-sm border-black/5 rounded-2xl md:rounded-3xl">
-        <div className="flex flex-col gap-3 p-3 bg-white border-b md:p-4 shrink-0 border-black/5">
-          <div className="flex flex-col items-center justify-between gap-4 xl:flex-row">
+        
+        {/* ===== BARRE D'OUTILS ET FILTRES (1 LIGNE SUR DESKTOP) ===== */}
+        <div className="flex flex-col justify-between gap-3 p-3 bg-white border-b xl:flex-row xl:items-center md:p-4 shrink-0 border-black/5">
+          
+          {/* GROUPE GAUCHE : Recherche + Spécialités */}
+          <div className="flex flex-col items-center w-full gap-3 sm:flex-row xl:w-auto">
             
-            {/* LIGNE 1 : FILTRES */}
-            <div className="flex flex-col items-center w-full gap-3 sm:flex-row xl:w-auto">
-              <div className="relative w-full sm:w-64 shrink-0">
-                <select value={selectedFormation} onChange={e => handleTabChange(setSelectedFormation, e.target.value)} className="w-full appearance-none bg-black/[0.02] border border-black/5 text-black py-2.5 pl-4 pr-10 rounded-xl text-sm font-bold outline-none cursor-pointer">
-                  {formations.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
-                </select>
-                <ChevronDown size={16} className="absolute -translate-y-1/2 pointer-events-none right-4 top-1/2 text-black/40"/>
+            {/* Barre de Recherche (réduite sur desktop) */}
+            <div className="flex items-center w-full gap-3 sm:w-auto">
+              <div className="relative flex-1 min-w-0 sm:flex-none sm:w-64 lg:w-72 group">
+                <Search size={18} className="absolute transition-colors -translate-y-1/2 text-black/40 left-4 top-1/2 group-focus-within:text-primary" />
+                <input 
+                  type="text" 
+                  placeholder="Nom ou matricule..." 
+                  value={search} 
+                  onChange={e => setSearch(e.target.value)} 
+                  className="w-full py-2.5 pl-11 pr-4 text-xs md:text-sm font-medium transition-all bg-black/[0.02] border border-black/5 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary focus:bg-white"
+                />
               </div>
-              <div className="relative w-full sm:w-64 shrink-0 group">
-                <Search size={16} className="absolute -translate-y-1/2 text-black/40 left-3 top-1/2" />
-                <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-black/[0.02] border border-black/5 rounded-xl text-sm font-medium outline-none"/>
+              
+              {/* Boutons d'action (Mobile uniquement) */}
+              <div className="flex md:hidden items-center gap-1.5 shrink-0">
+                  <button 
+                    onClick={resetSemesterNotes} 
+                    disabled={isSavingGlobal || originalStagiaires.filter(s => s.moyenne_id).length === 0}
+                    className="p-2.5 bg-black/5 border border-black/5 text-black/40 rounded-xl hover:text-red-500 hover:bg-red-50 disabled:opacity-20 transition-all"
+                  >
+                    <Trash2 size={18}/>
+                  </button>
+                  <button 
+                    onClick={saveAllNotes} 
+                    disabled={!hasChanges || isSavingGlobal}
+                    className={`p-2.5 rounded-xl transition-all shadow-sm ${hasChanges ? "bg-primary text-white active:scale-95" : "bg-black/5 text-black/20"}`}
+                  >
+                    {isSavingGlobal ? <Loader2 size={18} className="animate-spin" /> : <Save size={18}/>}
+                  </button>
               </div>
             </div>
 
-            {/* LIGNE 2 : ONGLETS SEMESTRES ET COMPTEUR */}
-            <div className="flex items-center justify-between w-full gap-4 xl:w-auto">
-              <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none]">
-                {[1, 2, 3, 4, 5].map(num => (
-                  <button key={num} onClick={() => handleTabChange(setSelectedSemestreNum, num)} className={`px-4 py-2 rounded-lg text-xs font-bold whitespace-nowrap ${selectedSemestreNum === num ? "bg-secondary text-white" : "bg-black/[0.02] text-black/60 hover:text-black"}`}>
-                    S{num}
-                  </button>
-                ))}
-              </div>
-              <div className="px-3 py-2 text-[10px] md:text-xs font-bold tracking-widest text-black/50 uppercase bg-black/[0.02] border border-black/5 rounded-xl whitespace-nowrap shrink-0">
-                {filtered.length} <span className="hidden sm:inline">Stagiaire(s)</span>
-              </div>
+            {/* Sélecteur de Spécialités */}
+            <div className="relative w-full sm:w-56 shrink-0">
+              <select 
+                value={selectedFormation} 
+                onChange={e => handleTabChange(setSelectedFormation, e.target.value)} 
+                className="w-full appearance-none bg-black/[0.02] border border-black/5 text-black py-2.5 pl-4 pr-10 rounded-xl text-xs md:text-sm font-bold outline-none cursor-pointer focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              >
+                {formations.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
+              </select>
+              <ChevronDown size={16} className="absolute -translate-y-1/2 pointer-events-none text-black/40 right-4 top-1/2"/>
+            </div>
+          </div>
+
+          {/* GROUPE DROITE : Semestres + Compteur */}
+          <div className="flex items-center justify-between w-full xl:w-auto gap-4 overflow-x-auto [scrollbar-width:none]">
+            
+            {/* Sélecteur de Semestres */}
+            <div className="flex items-center gap-1.5 shrink-0 pb-1 sm:pb-0">
+              {[1, 2, 3, 4, 5, "all"].map(num => (
+                <button 
+                  key={num} 
+                  onClick={() => handleTabChange(setSelectedSemestreNum, num)} 
+                  className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                    selectedSemestreNum === num 
+                    ? "bg-secondary text-white shadow-sm" 
+                    : "bg-black/[0.02] border border-black/5 text-black/60 hover:text-black hover:bg-black/5"
+                  }`}
+                >
+                  {num === "all" ? "Tous" : `S${num}`}
+                </button>
+              ))}
             </div>
             
+            {/* Compteur (Desktop uniquement) */}
+            <div className="hidden sm:block px-3 py-2 text-[10px] md:text-xs font-bold tracking-widest text-black/50 uppercase bg-black/[0.02] border border-black/5 rounded-xl whitespace-nowrap shrink-0">
+              {filtered.length} <span className="hidden xl:inline">Stagiaire(s)</span>
+            </div>
+
           </div>
         </div>
 
-        <div className="flex-1 overflow-x-auto overflow-y-auto [scrollbar-width:none]">
-          <table className="w-full text-left border-collapse min-w-[750px]">
+        {/* ===== TABLEAU DES NOTES (RESPONSIVE) ===== */}
+        <div className="flex-1 overflow-x-auto overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <table className="w-full text-left border-collapse min-w-[800px]">
             <thead className="sticky top-0 z-10 border-b bg-white/90 backdrop-blur-md border-black/5">
               <tr>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40">Stagiaire</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center w-32">Niveau Actuel</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center w-32">Moyenne S{selectedSemestreNum}</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40">Appréciation</th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center w-24">Actions</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 whitespace-nowrap">Stagiaire</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center w-32 whitespace-nowrap">Niveau Actuel</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center w-32 whitespace-nowrap">
+                  {selectedSemestreNum === "all" ? "Moyenne" : `Moyenne S${selectedSemestreNum}`}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 whitespace-nowrap">Appréciation</th>
+                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-black/40 text-center w-24 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/5">
               {loading ? (
-                <tr><td colSpan="5" className="py-24 text-center"><Loader2 className="mx-auto mb-3 animate-spin text-primary" size={32}/><p className="text-[10px] font-bold uppercase text-black/40">Synchronisation...</p></td></tr>
+                <tr><td colSpan="5" className="py-24 text-center"><Loader2 className="mx-auto mb-3 animate-spin text-primary" size={32}/><p className="text-[10px] font-bold uppercase tracking-widest text-black/40">Synchronisation...</p></td></tr>
               ) : filtered.length > 0 ? (
                 filtered.map(s => {
                   const isModified = originalStagiaires.find(o => o.id === s.id)?.valeur !== s.valeur || originalStagiaires.find(o => o.id === s.id)?.appreciation !== s.appreciation;
@@ -254,37 +299,49 @@ export default function AdminNotes() {
 
                   return (
                     <tr key={s.id} className="transition-colors hover:bg-black/[0.01] group">
-                      <td className="px-6 py-3">
+                      <td className="px-6 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-4">
                           <div className={`flex items-center justify-center text-[11px] font-bold rounded-xl w-9 h-9 border shrink-0 bg-black/[0.02] text-black/40 border-black/5`}>
                             {initiales || '?'}
                           </div>
                           <div>
                             <p className="text-sm font-bold text-black">{s.nom} {s.prenom}</p>
-                            <p className="text-[10px] text-black/40 font-mono">{s.matricule}</p>
+                            <p className="text-[10px] text-black/40 font-mono tracking-wider">{s.matricule}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-3 text-center">
+                      <td className="px-6 py-3 text-center whitespace-nowrap">
                         <span className={`px-2.5 py-1 text-[10px] font-bold rounded-lg border uppercase tracking-wider bg-black/5 text-black/60 border-black/10`}>
                           S{s.niveau_actuel_num}
                         </span>
                       </td>
-                      <td className="px-6 py-3 text-center">
-                        <input type="number" max="20" min="0" step="0.01" value={s.valeur} onChange={e => handleInputChange(s.id, 'valeur', e.target.value)} className={`w-20 mx-auto border rounded-lg px-2 py-2 text-center text-sm font-bold outline-none transition-all ${isModified ? 'bg-primary/5 border-primary/30 text-primary' : 'bg-black/[0.02] border-black/5 text-black'}`}/>
+                      <td className="px-6 py-3 text-center whitespace-nowrap">
+                        <input 
+                          type="number" max="20" min="0" step="0.01" 
+                          value={s.valeur} 
+                          onChange={e => handleInputChange(s.id, 'valeur', e.target.value)} 
+                          className={`w-20 mx-auto border rounded-xl px-2 py-2 text-center text-sm font-bold outline-none transition-all focus:ring-2 focus:ring-primary/20 ${isModified ? 'bg-primary/5 border-primary/30 text-primary focus:border-primary' : 'bg-black/[0.02] border-black/5 text-black hover:border-black/20'}`}
+                        />
                       </td>
-                      <td className="px-6 py-3">
-                        <input type="text" placeholder="Appréciation..." value={s.appreciation} onChange={e => handleInputChange(s.id, 'appreciation', e.target.value)} className={`w-full px-4 py-2 text-sm font-medium transition-all border rounded-lg outline-none ${isModified ? 'bg-primary/5 border-primary/20 text-primary' : 'bg-black/[0.02] border-transparent text-black'}`}/>
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        <input 
+                          type="text" placeholder="Appréciation..." 
+                          value={s.appreciation} 
+                          onChange={e => handleInputChange(s.id, 'appreciation', e.target.value)} 
+                          className={`w-full min-w-[150px] px-4 py-2.5 text-sm font-medium transition-all border rounded-xl outline-none focus:ring-2 focus:ring-primary/20 ${isModified ? 'bg-primary/5 border-primary/20 text-primary focus:border-primary' : 'bg-black/[0.02] border-transparent text-black hover:border-black/10'}`}
+                        />
                       </td>
-                      <td className="px-6 py-3">
+                      <td className="px-6 py-3 whitespace-nowrap">
                         <div className="flex items-center justify-center gap-2">
                           {isModified ? (
-                            <div className="flex items-center gap-1 px-2 py-1 text-[9px] font-bold uppercase text-primary bg-primary/10 rounded-md">
+                            <div className="flex items-center gap-1.5 px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 border border-primary/20 rounded-lg">
                               <span className="relative flex w-1.5 h-1.5"><span className="absolute w-full h-full rounded-full opacity-75 animate-ping bg-primary"></span><span className="relative w-1.5 h-1.5 rounded-full bg-primary"></span></span>
                               MàJ
                             </div>
                           ) : (
-                            <button onClick={() => resetSingleNote(s)} disabled={!s.moyenne_id && s.valeur === ""} className="transition-colors text-black/20 hover:text-red-500 disabled:opacity-0"><Trash2 size={16}/></button>
+                            <button onClick={() => resetSingleNote(s)} disabled={!s.moyenne_id && s.valeur === ""} className="p-2 transition-colors border border-transparent rounded-lg text-black/20 hover:text-red-500 hover:bg-red-50 hover:border-red-200 disabled:opacity-0">
+                              <Trash2 size={16}/>
+                            </button>
                           )}
                         </div>
                       </td>
@@ -292,7 +349,7 @@ export default function AdminNotes() {
                   )
                 })
               ) : (
-                <tr><td colSpan="5" className="py-24 text-center bg-black/[0.01]"><AlertCircle size={40} className="mx-auto mb-3 text-black/20"/><h3 className="text-sm font-bold text-black/50">Aucun stagiaire trouvé</h3></td></tr>
+                <tr><td colSpan="5" className="py-24 text-center bg-black/[0.01]"><AlertCircle size={40} className="mx-auto mb-4 text-black/20"/><h3 className="text-sm font-bold text-black/50">Aucun stagiaire trouvé</h3></td></tr>
               )}
             </tbody>
           </table>

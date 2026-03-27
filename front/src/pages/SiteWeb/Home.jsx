@@ -1,8 +1,6 @@
 import Hero from "../../components/Hero";
 import About from "../../components/About";
 import FormationsPreview from "../../components/FormationsPreview";
-import Footer from "../../components/Footer";
-import Stats from "../../components/Stat";
 import NewsPreview from"../../components/ActualitesPreview"
 import Faq from"../../components/Faq";
 import InscriptionMini from "../../components/InscriptionMini";

@@ -139,7 +139,8 @@ export default function LoginStagiaire() {
                   onChange={(e) => setMatricule(e.target.value)}
                   placeholder="Ex: INSFP-2026-001"
                   disabled={isLoading}
-                  className="w-full py-3.5 pl-12 pr-4 text-sm font-medium transition-all border border-gray-200 bg-gray-50/50 rounded-xl text-secondary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  /* CHANGEMENT ICI: text-[16px] md:text-sm pour éviter le zoom mobile */
+                  className="w-full py-3.5 pl-12 pr-4 text-[16px] md:text-sm font-medium transition-all border border-gray-200 bg-gray-50/50 rounded-xl text-secondary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   required
                 />
               </div>
@@ -160,7 +161,8 @@ export default function LoginStagiaire() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   disabled={isLoading}
-                  className="w-full py-3.5 pl-12 pr-4 text-sm font-medium transition-all border border-gray-200 bg-gray-50/50 rounded-xl text-secondary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  /* CHANGEMENT ICI: text-[16px] md:text-sm pour éviter le zoom mobile */
+                  className="w-full py-3.5 pl-12 pr-4 text-[16px] md:text-sm font-medium transition-all border border-gray-200 bg-gray-50/50 rounded-xl text-secondary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   required
                 />
               </div>

@@ -1,20 +1,21 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { 
-  User, BookOpen, TrendingUp, Calendar, GraduationCap, 
-  Clock, MapPin, Hash, ArrowRight, FileText, Award, CheckCircle2
+  User, TrendingUp, Calendar, Clock, MapPin, 
+  ArrowRight, FileText, Award, CheckCircle2, Download
 } from "lucide-react";
 import api from "../../services/api";
 
 export default function Dashboard() {
   const user = JSON.parse(localStorage.getItem("user")) || {};
   const info = user.stagiaire || JSON.parse(localStorage.getItem("stagiaire_info")) || {};
+  const backendUrl = "https://api.insfp-ouledfayet.com/storage/";
   
   const [todayClasses, setTodayClasses] = useState([]);
+  const [recentDocs, setRecentDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const totalSemestres = 5; 
-  
   const semestreReel = parseInt(info.semestre?.numero || 1, 10);
 
   const academicStatus = useMemo(() => {
@@ -35,17 +36,26 @@ export default function Dashboard() {
         const joursFr = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
         const jourAujourdhui = joursFr[new Date().getDay()];
         
-        const resAgenda = await api.get("/stagiaire/emploi-du-temps", {
-          params: { formation_id: info.formation_id, semestre: semestreReel }
-        });
+        // Appel groupé pour l'agenda ET les documents
+        const [resAgenda, resDocs] = await Promise.all([
+          api.get("/stagiaire/emploi-du-temps", { params: { formation_id: info.formation_id, semestre: semestreReel } }),
+          api.get("/stagiaire/documents").catch(() => ({ data: [] }))
+        ]);
 
+        if (!isMounted) return;
+
+        // Traitement Agenda
         const allData = resAgenda.data || [];
         const filtered = allData.filter(seance => seance?.jour?.toLowerCase().trim() === jourAujourdhui.toLowerCase().trim());
         const sorted = filtered.sort((a, b) => (a.heure_debut || "00:00").localeCompare(b.heure_debut || "00:00"));
-        
-        if (isMounted) setTodayClasses(sorted);
+        setTodayClasses(sorted);
+
+        // Traitement Documents (On garde les 3 derniers)
+        const docs = Array.isArray(resDocs.data) ? resDocs.data : [];
+        setRecentDocs(docs.slice(0, 3));
+
       } catch (error) { 
-        console.error("Erreur lors de la récupération de l'agenda:", error); 
+        console.error("Erreur lors de la récupération des données:", error); 
         if (isMounted) setTodayClasses([]);
       } finally { 
         if (isMounted) setLoading(false); 
@@ -55,34 +65,26 @@ export default function Dashboard() {
     return () => { isMounted = false; };
   }, [info.formation_id, semestreReel]);
 
-  const statCards = [
-    { label: "Spécialité", value: info.formation?.nom || "Non affecté", icon: BookOpen, link: "/DashStagiaire/Profil" },
-    { label: "Matricule", value: info.matricule || "S-0000", icon: Hash, link: "/DashStagiaire/Profil" },
-    { label: "Niveau", value: `Semestre ${academicStatus.numero}`, icon: GraduationCap, link: "/DashStagiaire/SuiviSemestre" },
-    { label: "Progression", value: `${Math.round(academicStatus.progression)}%`, icon: TrendingUp, link: "/DashStagiaire/SuiviSemestre" }
-  ];
-
   return (
-    // 🔒 L'overflow-hidden bloque strictement tout scroll de la page entière
-    <div className="container mx-auto flex flex-col gap-3 md:gap-6 p-3 md:p-5 h-[calc(100dvh-70px)] md:h-[calc(100vh-80px)] overflow-hidden bg-background font-sans">
+    <div className="container mx-auto flex flex-col gap-4 md:gap-6 p-3 md:p-5 min-h-[calc(100dvh-70px)] md:min-h-[calc(100vh-80px)] bg-background font-sans pb-8">
       
       {/* ===== BANNIÈRE HERO ===== */}
-      <div className="relative w-full h-[120px] md:h-[220px] shrink-0 p-5 md:p-10 overflow-hidden text-white bg-secondary rounded-2xl md:rounded-3xl border border-black/5">
+      <div className="relative w-full min-h-[120px] h-auto md:h-[220px] shrink-0 p-5 md:p-10 overflow-hidden text-white bg-secondary rounded-2xl md:rounded-3xl border border-black/5 flex items-center">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 opacity-5">
           <Award size={250} className="md:w-[350px] md:h-[350px]" />
         </div>
         
-        <div className="relative z-10 flex flex-col justify-center h-full gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="relative z-10 flex flex-col justify-center w-full h-full gap-2 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-col justify-center">
             <h1 className="text-xl font-bold tracking-tight md:mb-2 md:text-4xl">
               Bonjour, {user.prenom || "Stagiaire"}
             </h1>
-            <p className="max-w-xl text-xs font-medium md:text-sm text-white/80 line-clamp-1">
+            <p className="max-w-xl text-xs font-medium leading-relaxed md:text-sm text-white/80">
               Bienvenue sur votre espace. Vous avez <span className="font-bold text-white">{todayClasses.length} cours</span> prévu(s) aujourd'hui.
             </p>
           </div>
 
-          <div className="items-center hidden gap-5 px-8 py-5 border md:flex bg-white/5 backdrop-blur-md rounded-2xl border-white/10">
+          <div className="items-center hidden gap-5 px-8 py-5 border md:flex bg-white/5 backdrop-blur-md rounded-2xl border-white/10 shrink-0">
             <div className="text-right">
               <span className="block text-6xl font-bold leading-none tracking-tighter">
                 {new Date().getDate()}
@@ -100,76 +102,107 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ===== CARTES KPIs ===== */}
-      <div className="grid grid-cols-2 gap-2 shrink-0 md:grid-cols-4 md:gap-5">
-        {statCards.map((stat, index) => (
-          <Link to={stat.link} key={index} className="flex flex-col justify-between p-2.5 md:p-5 transition-all bg-white border shadow-sm border-black/5 group rounded-xl md:rounded-2xl hover:shadow-md hover:border-primary/30">
-            <div className="flex items-start justify-between mb-1.5 md:mb-4">
-              <div className="p-1.5 md:p-2.5 rounded-lg md:rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
-                <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
-              </div>
-              <ArrowRight className="w-4 h-4 transition-all md:w-4 md:h-4 text-black/20 group-hover:text-primary" />
-            </div>
-            <div>
-              {/* MODIFICATION ICI : text-xs md:text-lg au lieu de text-sm md:text-2xl */}
-              <h3 className="text-xs font-bold leading-tight text-black truncate md:text-lg">
-                {loading ? "..." : stat.value}
-              </h3>
-              <p className="text-[8px] md:text-[10px] tracking-widest text-black/60 uppercase mt-0.5 md:mt-1">{stat.label}</p>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* ===== LAYOUT DU BAS (Split 50/50 Mobile & Desktop) ===== */}
-      <div className="flex flex-col flex-1 min-h-0 gap-3 pb-1 lg:flex-row md:gap-6 md:pb-2">
+      {/* ===== LAYOUT DU BAS ===== */}
+      <div className="flex flex-col items-start w-full gap-4 lg:flex-row md:gap-6">
         
-        {/* === AGENDA DU JOUR === */}
-        <div className="flex flex-col flex-1 min-h-0 overflow-hidden bg-white border shadow-sm border-black/5 rounded-2xl md:rounded-3xl">
-          <div className="flex items-center justify-between p-3 border-b md:p-6 shrink-0 border-black/5 bg-black/[0.01]">
-            <h2 className="flex items-center gap-2 text-xs font-bold text-black md:text-lg">
-               <Calendar className="w-4 h-4 text-primary md:w-5 md:h-5" /> Agenda du jour
+        {/* === AGENDA DU JOUR (Moitié Gauche) === */}
+        <div className="flex flex-col w-full overflow-hidden bg-white border shadow-sm lg:w-1/2 border-black/5 rounded-2xl md:rounded-3xl">
+          
+          {/* En-tête harmonisé */}
+          <div className="flex items-center justify-between p-4 border-b md:p-5 border-black/5 bg-black/[0.01] shrink-0">
+            <h2 className="flex items-center gap-2 text-xs font-bold tracking-widest text-black uppercase md:text-sm">
+               <Calendar className="w-4 h-4 text-primary" /> Aujourd'hui
             </h2>
           </div>
 
-          <div className="flex-1 p-3 overflow-y-auto md:p-6 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          {/* Contenu harmonisé */}
+          <div className="flex flex-col gap-3 p-4 md:p-5">
             {todayClasses.length > 0 ? (
               todayClasses.map((seance, i) => (
-                <div key={i} className="flex gap-3 mb-3 md:gap-4 group md:mb-4 last:mb-0">
-                  <div className="flex flex-col items-center shrink-0">
-                    <div className="w-2.5 h-2.5 md:w-3 md:h-3 mt-1 md:mt-1.5 rounded-full bg-primary ring-4 ring-primary/10 relative z-10" />
-                    {i !== todayClasses.length - 1 && <div className="w-[2px] flex-1 bg-black/5 my-1" />}
-                  </div>
-                  <div className="flex-1 pb-2 md:pb-4">
-                    <p className="text-[9px] md:text-[10px] font-bold text-primary uppercase tracking-widest mb-1.5 md:mb-2 bg-primary/10 px-2 md:px-2.5 py-0.5 md:py-1 rounded inline-block">
-                      {seance.heure_debut} - {seance.heure_fin}
-                    </p>
-                    <h4 className="text-xs font-bold leading-snug text-black transition-colors md:text-base group-hover:text-primary">
-                      {seance.module?.nom}
-                    </h4>
-                    <div className="flex items-center gap-1.5 md:gap-2 mt-1 md:mt-2 text-[9px] md:text-xs font-medium text-black/60">
-                      <MapPin className="w-3 h-3 md:w-3 md:h-3" /> Salle {seance.salle?.nom}
-                    </div>
+                <div key={i} className="flex items-center justify-between p-3 md:p-4 transition-colors bg-black/[0.02] border border-black/5 rounded-xl group hover:border-primary/20 hover:bg-white">
+                  <div className="flex flex-col">
+                     <h4 className="text-xs font-bold leading-snug text-black transition-colors md:text-sm group-hover:text-primary">
+                       {seance.module?.nom}
+                     </h4>
+                     <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                        <span className="flex items-center gap-1 text-[9px] md:text-[10px] font-bold text-primary uppercase tracking-widest">
+                          <Clock size={12} /> {seance.heure_debut} - {seance.heure_fin}
+                        </span>
+                        <span className="flex items-center gap-1 text-[9px] md:text-[10px] font-bold text-black/50 uppercase tracking-widest">
+                          <MapPin size={12} /> Salle {seance.salle?.nom}
+                        </span>
+                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="flex flex-col items-center justify-center h-full py-4 md:py-8 text-center border-2 border-dashed border-black/5 rounded-xl md:rounded-2xl bg-black/[0.02]">
-                <Clock className="w-6 h-6 mb-2 md:w-10 md:h-10 md:mb-3 text-black/20" />
-                <h3 className="text-xs font-bold text-black/60 md:text-sm">Quartier libre aujourd'hui</h3>
+              <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-black/5 rounded-xl bg-black/[0.01]">
+                <Clock className="w-8 h-8 mb-3 text-black/20" />
+                <h3 className="text-xs font-bold tracking-widest uppercase text-black/50">Quartier libre</h3>
               </div>
             )}
           </div>
         </div>
 
-        {/* === ACTIONS RAPIDES === */}
-        <div className="flex-1 min-h-0 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          <div className="grid h-full grid-cols-2 gap-2 md:gap-4">
+        {/* === COLONNE DE DROITE (Moitié Droite : Actions + Documents) === */}
+        <div className="flex flex-col w-full gap-4 lg:w-1/2 md:gap-6">
+          
+          {/* Actions Rapides Grid */}
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             <ActionRow to="/DashStagiaire/SuiviSemestre" icon={TrendingUp} title="Notes" label="Résultats" />
             <ActionRow to="/DashStagiaire/Documents" icon={FileText} title="Fichiers" label="Documents" />
             <ActionRow to="/DashStagiaire/EmploiDuTemps" icon={Calendar} title="Agenda" label="Planning" />
             <ActionRow to="/DashStagiaire/Profil" icon={User} title="Compte" label="Profil" />
           </div>
+
+          {/* Documents Récents */}
+          <div className="flex flex-col overflow-hidden bg-white border shadow-sm border-black/5 rounded-2xl md:rounded-3xl">
+            
+            {/* En-tête harmonisé */}
+            <div className="flex items-center justify-between p-4 border-b md:p-5 border-black/5 bg-black/[0.01] shrink-0">
+              <h2 className="flex items-center gap-2 text-xs font-bold tracking-widest text-black uppercase">
+                 <FileText className="w-4 h-4 text-primary" /> Récents
+              </h2>
+              <Link to="/DashStagiaire/Documents" className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest">
+                Voir tout
+              </Link>
+            </div>
+            
+            {/* Contenu harmonisé */}
+            <div className="flex flex-col gap-3 p-4 md:p-5">
+              {recentDocs.length > 0 ? (
+                recentDocs.map(doc => (
+                  <a 
+                    key={doc.id}
+                    href={doc.fichier?.startsWith('http') ? doc.fichier : `${backendUrl}${doc.fichier}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3 md:p-4 transition-colors bg-black/[0.02] border border-black/5 rounded-xl hover:border-primary/30 hover:bg-primary/5 group"
+                  >
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="p-2.5 bg-white rounded-lg shadow-sm text-primary shrink-0 group-hover:scale-105 transition-transform">
+                        <FileText size={16} />
+                      </div>
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-xs font-bold truncate transition-colors text-secondary md:text-sm group-hover:text-primary">
+                          {doc.titre}
+                        </span>
+                        <span className="text-[9px] md:text-[10px] font-bold text-black/40 uppercase tracking-widest mt-0.5">
+                          {new Date(doc.created_at || Date.now()).toLocaleDateString("fr-FR", { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                    <Download size={16} className="ml-2 transition-colors text-black/20 group-hover:text-primary shrink-0" />
+                  </a>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10 text-center border-2 border-dashed border-black/5 rounded-xl bg-black/[0.01]">
+                  <FileText className="w-8 h-8 mb-3 text-black/20" />
+                  <h3 className="text-xs font-bold tracking-widest uppercase text-black/50">Aucun document récent</h3>
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -180,18 +213,19 @@ export default function Dashboard() {
 // Composant Bouton d'Action
 function ActionRow({ to, icon: Icon, title, label }) {
   return (
-    <Link to={to} className="flex flex-col items-center justify-center h-full gap-1.5 p-2 md:p-5 md:gap-3 transition-all xl:flex-row xl:justify-start bg-white shadow-sm border border-black/5 rounded-xl md:rounded-2xl hover:border-primary/30 hover:shadow-md group">
-      <div className="relative flex items-center justify-center w-8 h-8 text-white transition-transform rounded-lg shadow-md md:w-12 md:h-12 md:rounded-xl bg-secondary group-hover:scale-105 shrink-0">
-        <Icon className="w-4 h-4 md:w-5 md:h-5" />
+    <Link to={to} className="flex flex-col items-center justify-center h-20 gap-1 p-3 transition-all bg-white border shadow-sm md:h-24 border-black/5 rounded-xl md:rounded-2xl hover:border-primary/30 hover:shadow-md group">
+      <div className="flex items-center justify-between w-full px-1 md:px-2">
+         <div className="relative flex items-center justify-center w-8 h-8 text-white transition-transform rounded-lg shadow-md md:w-9 md:h-9 bg-secondary group-hover:scale-105 shrink-0">
+           <Icon className="w-4 h-4" />
+         </div>
+         <ArrowRight size={14} className="transition-all text-black/10 group-hover:text-primary group-hover:translate-x-1" />
       </div>
-      <div className="flex flex-col items-center justify-center flex-1 text-center xl:items-start xl:text-left">
-        {/* MODIFICATION ICI : text-[10px] sm:text-[11px] md:text-xs */}
-        <h2 className="text-[10px] sm:text-[11px] md:text-xs font-bold text-black transition-colors group-hover:text-primary leading-tight line-clamp-1">{title}</h2>
-        <div className="flex items-center gap-1 mt-1 md:mt-1.5 px-1.5 md:px-2 py-0.5 rounded-md text-[8px] md:text-[9px] font-bold uppercase tracking-wider w-fit bg-primary/10 text-primary">
-          <CheckCircle2 className="w-2.5 h-2.5 md:w-3 md:h-3" /> {label}
+      <div className="flex flex-col items-start w-full px-1 md:px-2 mt-1.5">
+        <h2 className="text-[11px] md:text-xs font-bold text-black transition-colors group-hover:text-primary leading-tight line-clamp-1 uppercase tracking-wider">{title}</h2>
+        <div className="flex items-center gap-1 mt-1 text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-black/40 group-hover:text-primary/70 transition-colors">
+          <CheckCircle2 size={10} /> {label}
         </div>
       </div>
-      <ArrowRight size={18} className="hidden transition-all xl:block text-black/10 group-hover:text-primary group-hover:translate-x-1" />
     </Link>
   );
 }

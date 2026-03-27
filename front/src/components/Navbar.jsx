@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import logo from "../assets/images/logo-insfp.png";
+import logo from "../assets/images/logo-insfp.svg";
 import Button from "./Buttons.jsx";
 import { FaUserGraduate, FaBars, FaTimes } from "react-icons/fa";
 

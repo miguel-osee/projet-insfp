@@ -5,7 +5,7 @@ import bgInscription from "../assets/images/image-b.jpg";
 
 export default function InscriptionMini() {
   return (
-    <section className="relative flex items-center justify-center py-20 mx-auto text-white bg-fixed bg-center bg-cover"
+    <section className="relative flex items-center justify-center py-20 mx-auto text-white bg-fixed bg-scroll bg-center bg-cover md:bg-fixed md:bg-cover" 
       style={{
         backgroundImage: `url(${bgInscription})`,
       }}
@@ -15,9 +15,9 @@ export default function InscriptionMini() {
 
       {/* Contenu principal */}  
       <div className="relative z-10 max-w-2xl px-6 text-center">
-        <h2 className="text-2xl font-bold leading-tight md:text-4xl">
+        <h1 className="text-2xl font-bold leading-tight md:text-4xl">
           Inscription en ligne
-        </h2>
+        </h1>
 
         <p className="mt-6 text-lg text-gray-200">
           L’inscription aux formations de l’INSFP Audiovisuel se fait

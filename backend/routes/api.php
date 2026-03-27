@@ -18,26 +18,22 @@ use App\Http\Controllers\Admin\ThemeController;
 
 /*
 |--------------------------------------------------------------------------
-| 🔓 ROUTES PUBLIQUES (Accessibles sans connexion pour le Site Vitrine)
+| 🔓 ROUTES PUBLIQUES
 |--------------------------------------------------------------------------
 */
 Route::post('/login', [AuthController::class, 'login']);
 
-// --- Formations ---
-Route::get('/formations', [FormationController::class, 'index']); // Liste toutes les formations
-Route::get('/formations/{id}', [FormationController::class, 'show']); // 🚀 NOUVEAU : Affiche les détails d'une formation
+Route::get('/formations', [FormationController::class, 'index']);
+Route::get('/formations/{id}', [FormationController::class, 'show']);
 
-// --- Actualités ---
-Route::get('/actualites', [ActualiteController::class, 'index']); // Liste toutes les actualités
-Route::get('/actualites/{id}', [ActualiteController::class, 'show']); // 🚀 NOUVEAU : Affiche les détails d'une actualité
+Route::get('/actualites', [ActualiteController::class, 'index']);
+Route::get('/actualites/{id}', [ActualiteController::class, 'show']);
 
-// --- Galerie ---
 Route::get('/galerie', [GalerieController::class, 'index']);
-
 
 /*
 |--------------------------------------------------------------------------
-| 🛡️ ROUTES PROTÉGÉES (Connexion requise : auth:sanctum)
+| 🛡️ ROUTES PROTÉGÉES (auth:sanctum)
 |--------------------------------------------------------------------------
 */
 Route::middleware('auth:sanctum')->group(function () {
@@ -58,10 +54,18 @@ Route::middleware('auth:sanctum')->group(function () {
         // Statistiques du Dashboard
         Route::get('/stats', [DashboardController::class, 'getStats']);
 
-        // Gestion des ressources (CRUD complet généré par apiResource)
+        // --- Gestion des Stagiaires ---
+        Route::apiResource('stagiaires', StagiaireController::class);
+        
+        // ✅ LA ROUTE MANQUANTE : Réinitialisation du mot de passe
+        Route::post('/stagiaires/{id}/reset-password', [StagiaireController::class, 'resetPassword']);
+        
+        // Mise à jour spécifique du niveau
+        Route::patch('/stagiaires/{id}/niveau', [StagiaireController::class, 'updateNiveau']);
+
+        // --- Autres Ressources ---
         Route::apiResource('formations', FormationController::class);
         Route::apiResource('semestres', SemestreController::class);
-        Route::apiResource('stagiaires', StagiaireController::class);
         Route::apiResource('actualites', ActualiteController::class);
         Route::apiResource('moyennes', MoyenneController::class);
         Route::apiResource('emplois', EmploiDuTempsController::class);
@@ -69,11 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('galerie', GalerieController::class);
         Route::apiResource('documents', DocumentController::class);
         Route::apiResource('themes', ThemeController::class);
-        
-        // Mise à jour spécifique du niveau du stagiaire
-        Route::patch('/stagiaires/{id}/niveau', [StagiaireController::class, 'updateNiveau']);
 
-        // Récupérer les semestres spécifiques à une formation
+        // Récupérer les semestres d'une formation
         Route::get('/formations/{id}/semestres', function ($id) {
             return \App\Models\Semestre::where('formation_id', $id)->get();
         });
